@@ -4,32 +4,45 @@ const popup = document.getElementById("popup");
 const bgm = document.getElementById("bgm");
 const chime = document.getElementById("chime");
 
-bgm.volume = 0.35;
-bgm.play().catch(()=>{});
-
 const TILE = 64;
-const W = canvas.width / TILE;
-const H = canvas.height / TILE;
 
-/* ========= LOAD IMAGES ========= */
+/* ========= SAFE AUDIO START ========= */
 
-function img(src){
-  const i = new Image();
-  i.src = src;
-  return i;
+document.addEventListener("click", () => {
+  bgm.volume = 0.35;
+  bgm.play().catch(()=>{});
+}, { once:true });
+
+/* ========= IMAGE LOADER ========= */
+
+function loadImages(sources, callback){
+  const images = {};
+  let loaded = 0;
+  const keys = Object.keys(sources);
+
+  keys.forEach(k=>{
+    images[k] = new Image();
+    images[k].src = sources[k];
+    images[k].onload = () => {
+      loaded++;
+      if(loaded === keys.length) callback(images);
+    };
+  });
+
+  return images;
 }
 
-const IMG = {
-  tiles: img("assets/tiles.png"),
-  house: img("assets/house.png"),
-  cafe: img("assets/cafe.png"),
-  bench: img("assets/bench.png"),
-  arcade: img("assets/arcade.png"),
-  tree: img("assets/tree.png"),
-  gate: img("assets/gate.png"),
-  heart: img("assets/heart.png"),
-  player: img("assets/player.png")
-};
+const IMG = loadImages({
+  tiles: "assets/tiles.png",
+  house: "assets/house.png",
+  cafe: "assets/cafe.png",
+  bench: "assets/bench.png",
+  arcade: "assets/arcade.png",
+  tree: "assets/tree.png",
+  gate: "assets/gate.png",
+  heart: "assets/heart.png",
+  player: "assets/player.png"
+}, startGame);
 
 /* ========= MAP ========= */
 
@@ -68,10 +81,10 @@ let heartsFound = 0;
 /* ========= PLAYER ========= */
 
 const player = {x:1,y:1};
-const keys = {};
+const keysDown = {};
 
-addEventListener("keydown",e=>keys[e.key]=true);
-addEventListener("keyup",e=>keys[e.key]=false);
+addEventListener("keydown",e=>keysDown[e.key]=true);
+addEventListener("keyup",e=>keysDown[e.key]=false);
 
 /* ========= HELPERS ========= */
 
@@ -83,25 +96,33 @@ function popupMsg(t){
 }
 
 function walkable(x,y){
+  if(!map[y] || !map[y][x]) return false;
   return map[y][x] !== "#";
 }
+
+/* ========= GAME START AFTER IMAGES LOAD ========= */
+
+function startGame(){
+
+let tick = 0;
 
 /* ========= UPDATE ========= */
 
 function update(){
   let nx=player.x, ny=player.y;
 
-  if(keys.ArrowUp) ny--;
-  if(keys.ArrowDown) ny++;
-  if(keys.ArrowLeft) nx--;
-  if(keys.ArrowRight) nx++;
+  if(keysDown.ArrowUp) ny--;
+  else if(keysDown.ArrowDown) ny++;
+  else if(keysDown.ArrowLeft) nx--;
+  else if(keysDown.ArrowRight) nx++;
 
-  if(map[ny] && map[ny][nx] && walkable(nx,ny)){
+  if(walkable(nx,ny)){
     player.x = nx;
     player.y = ny;
   }
 
   const t = map[player.y][player.x];
+
   if(memories[t]){
     if(t==="G" && heartsFound < hearts.length){
       popupMsg(memories.G);
@@ -117,19 +138,13 @@ function update(){
       h.got = true;
       heartsFound++;
       chime.currentTime = 0;
-      chime.play();
+      chime.play().catch(()=>{});
       popupMsg(h.msg);
     }
   });
 }
 
 /* ========= DRAW ========= */
-
-let tick = 0;
-
-function drawTile(x,y){
-  ctx.drawImage(IMG.tiles, x, y, TILE, TILE);
-}
 
 function draw(){
   tick++;
@@ -146,7 +161,7 @@ function draw(){
         continue;
       }
 
-      drawTile(px,py);
+      ctx.drawImage(IMG.tiles, px, py, TILE, TILE);
 
       if(t==="H") ctx.drawImage(IMG.house, px, py, TILE, TILE);
       if(t==="C") ctx.drawImage(IMG.cafe, px, py, TILE, TILE);
@@ -161,27 +176,14 @@ function draw(){
     }
   }
 
-  /* hearts */
   hearts.forEach(h=>{
     if(h.got) return;
     const bob = Math.sin(tick/10 + h.x)*6;
-    ctx.drawImage(
-      IMG.heart,
-      h.x*TILE+16,
-      h.y*TILE+16 + bob,
-      32,32
-    );
+    ctx.drawImage(IMG.heart, h.x*TILE+16, h.y*TILE+16 + bob, 32,32);
   });
 
-  /* player */
-  ctx.drawImage(
-    IMG.player,
-    player.x*TILE+8,
-    player.y*TILE+8,
-    48,48
-  );
+  ctx.drawImage(IMG.player, player.x*TILE+8, player.y*TILE+8, 48,48);
 
-  /* star unlock sky */
   if(heartsFound === hearts.length){
     for(let i=0;i<40;i++){
       ctx.fillStyle="white";
@@ -199,3 +201,5 @@ function loop(){
 }
 
 loop();
+
+}
