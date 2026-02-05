@@ -4,45 +4,32 @@ const popup = document.getElementById("popup");
 const bgm = document.getElementById("bgm");
 const chime = document.getElementById("chime");
 
+bgm.volume = 0.35;
+
+/* start music only after first key press (browser rule) */
+addEventListener("keydown", () => bgm.play().catch(()=>{}), {once:true});
+
 const TILE = 64;
 
-/* ========= SAFE AUDIO START ========= */
+/* ========= IMAGES ========= */
 
-document.addEventListener("click", () => {
-  bgm.volume = 0.35;
-  bgm.play().catch(()=>{});
-}, { once:true });
-
-/* ========= IMAGE LOADER ========= */
-
-function loadImages(sources, callback){
-  const images = {};
-  let loaded = 0;
-  const keys = Object.keys(sources);
-
-  keys.forEach(k=>{
-    images[k] = new Image();
-    images[k].src = sources[k];
-    images[k].onload = () => {
-      loaded++;
-      if(loaded === keys.length) callback(images);
-    };
-  });
-
-  return images;
+function load(src){
+  const i = new Image();
+  i.src = src;
+  return i;
 }
 
-const IMG = loadImages({
-  tiles: "assets/tiles.png",
-  house: "assets/house.png",
-  cafe: "assets/cafe.png",
-  bench: "assets/bench.png",
-  arcade: "assets/arcade.png",
-  tree: "assets/tree.png",
-  gate: "assets/gate.png",
-  heart: "assets/heart.png",
-  player: "assets/player.png"
-}, startGame);
+const IMG = {
+  tiles: load("assets/tiles.png"),
+  house: load("assets/house.png"),
+  cafe: load("assets/cafe.png"),
+  bench: load("assets/bench.png"),
+  arcade: load("assets/arcade.png"),
+  tree: load("assets/tree.png"),
+  gate: load("assets/gate.png"),
+  heart: load("assets/heart.png"),
+  player: load("assets/player.png")
+};
 
 /* ========= MAP ========= */
 
@@ -60,14 +47,12 @@ const map = [
 ];
 
 const memories = {
-  H: "Home — where comfort lives.",
-  C: "Café — warm drinks, warmer moments.",
-  B: "Bench — long talks and quiet smiles.",
-  A: "Arcade — chaos + laughter combo.",
-  G: "The hill gate is locked. Find every heart."
+  H:"Home — where comfort lives.",
+  C:"Café — warm drinks, warmer moments.",
+  B:"Bench — long talks and quiet smiles.",
+  A:"Arcade — chaos + laughter combo.",
+  G:"The hill gate is locked. Find every heart."
 };
-
-/* ========= HEARTS ========= */
 
 const hearts = [
   {x:5,y:1,msg:"You are my favorite notification."},
@@ -81,10 +66,10 @@ let heartsFound = 0;
 /* ========= PLAYER ========= */
 
 const player = {x:1,y:1};
-const keysDown = {};
+const keys = {};
 
-addEventListener("keydown",e=>keysDown[e.key]=true);
-addEventListener("keyup",e=>keysDown[e.key]=false);
+addEventListener("keydown",e=>keys[e.key]=true);
+addEventListener("keyup",e=>keys[e.key]=false);
 
 /* ========= HELPERS ========= */
 
@@ -92,59 +77,45 @@ function popupMsg(t){
   popup.innerText = t;
   popup.style.display = "block";
   clearTimeout(popupMsg.t);
-  popupMsg.t = setTimeout(()=>popup.style.display="none", 3600);
+  popupMsg.t = setTimeout(()=>popup.style.display="none", 3200);
 }
 
 function walkable(x,y){
-  if(!map[y] || !map[y][x]) return false;
   return map[y][x] !== "#";
 }
-
-/* ========= GAME START AFTER IMAGES LOAD ========= */
-
-function startGame(){
-
-let tick = 0;
 
 /* ========= UPDATE ========= */
 
 function update(){
   let nx=player.x, ny=player.y;
 
-  if(keysDown.ArrowUp) ny--;
-  else if(keysDown.ArrowDown) ny++;
-  else if(keysDown.ArrowLeft) nx--;
-  else if(keysDown.ArrowRight) nx++;
+  if(keys.ArrowUp) ny--;
+  if(keys.ArrowDown) ny++;
+  if(keys.ArrowLeft) nx--;
+  if(keys.ArrowRight) nx++;
 
-  if(walkable(nx,ny)){
+  if(map[ny] && map[ny][nx] && walkable(nx,ny)){
     player.x = nx;
     player.y = ny;
   }
 
   const t = map[player.y][player.x];
-
-  if(memories[t]){
-    if(t==="G" && heartsFound < hearts.length){
-      popupMsg(memories.G);
-    } else if(t==="G"){
-      popupMsg("Hill unlocked — love you, always.");
-    } else {
-      popupMsg(memories[t]);
-    }
-  }
+  if(memories[t]) popupMsg(memories[t]);
 
   hearts.forEach(h=>{
     if(!h.got && h.x===player.x && h.y===player.y){
       h.got = true;
       heartsFound++;
       chime.currentTime = 0;
-      chime.play().catch(()=>{});
+      chime.play();
       popupMsg(h.msg);
     }
   });
 }
 
 /* ========= DRAW ========= */
+
+let tick = 0;
 
 function draw(){
   tick++;
@@ -179,17 +150,10 @@ function draw(){
   hearts.forEach(h=>{
     if(h.got) return;
     const bob = Math.sin(tick/10 + h.x)*6;
-    ctx.drawImage(IMG.heart, h.x*TILE+16, h.y*TILE+16 + bob, 32,32);
+    ctx.drawImage(IMG.heart, h.x*TILE+16, h.y*TILE+16+bob, 32,32);
   });
 
   ctx.drawImage(IMG.player, player.x*TILE+8, player.y*TILE+8, 48,48);
-
-  if(heartsFound === hearts.length){
-    for(let i=0;i<40;i++){
-      ctx.fillStyle="white";
-      ctx.fillRect((i*53)%canvas.width, (i*97)%200, 2,2);
-    }
-  }
 }
 
 /* ========= LOOP ========= */
@@ -201,5 +165,3 @@ function loop(){
 }
 
 loop();
-
-}
