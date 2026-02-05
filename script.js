@@ -134,27 +134,32 @@ function draw(){
 
       ctx.drawImage(IMG.tiles, px, py, TILE, TILE);
 
-      if(t==="H") ctx.drawImage(IMG.house, px, py, TILE, TILE);
-      if(t==="C") ctx.drawImage(IMG.cafe, px, py, TILE, TILE);
-      if(t==="B") ctx.drawImage(IMG.bench, px, py, TILE, TILE);
-      if(t==="A") ctx.drawImage(IMG.arcade, px, py, TILE, TILE);
-      if(t==="G") ctx.drawImage(IMG.gate, px, py, TILE, TILE);
-
-      if(t==="T"){
-        const sway = Math.sin(tick/15 + x)*3;
-        ctx.drawImage(IMG.tree, px, py+sway, TILE, TILE);
-      }
-    }
-  }
-
-  hearts.forEach(h=>{
-    if(h.got) return;
-    const bob = Math.sin(tick/10 + h.x)*6;
-    ctx.drawImage(IMG.heart, h.x*TILE+16, h.y*TILE+16+bob, 32,32);
-  });
-
-  ctx.drawImage(IMG.player, player.x*TILE+8, player.y*TILE+8, 48,48);
+/* ✅ FIX 3 — cozy tile variation */
+if(t==="#"){
+  ctx.fillStyle="#4a332c";
+  ctx.fillRect(px,py,TILE,TILE);
+  continue;
 }
+
+ctx.drawImage(IMG.tiles, px, py, TILE, TILE);
+
+/* fix 3 here */
+if ((x + y) % 2 === 0) {
+  ctx.fillStyle = "rgba(0,0,0,0.06)";
+  ctx.fillRect(px, py, TILE, TILE);
+}
+
+if(t==="H") ctx.drawImage(IMG.house, px, py, TILE, TILE);
+if(t==="C") ctx.drawImage(IMG.cafe, px, py, TILE, TILE);
+if(t==="B") ctx.drawImage(IMG.bench, px, py, TILE, TILE);
+if(t==="A") ctx.drawImage(IMG.arcade, px, py, TILE, TILE);
+if(t==="G") ctx.drawImage(IMG.gate, px, py, TILE, TILE);
+
+if(t==="T"){
+  const sway = Math.sin(tick/15 + x)*3;
+  ctx.drawImage(IMG.tree, px, py + sway, TILE, TILE);
+}
+
 
 /* ========= LOOP ========= */
 
