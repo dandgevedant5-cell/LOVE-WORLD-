@@ -6,27 +6,53 @@ body {
   align-items: center;
   height: 100vh;
   font-family: monospace;
+  overflow: hidden;
 }
 
+/* keeps game crisp when scaled */
 canvas {
   border: 6px solid #3a2a26;
   background: #3b2a24;
   image-rendering: pixelated;
-  box-shadow: 0 0 40px rgba(255,180,120,0.15);
+  image-rendering: crisp-edges;
+
+  /* responsive scale */
+  width: min(96vw, 1024px);
+  height: auto;
+
+  box-shadow:
+    0 0 40px rgba(255,180,120,0.15),
+    inset 0 0 60px rgba(0,0,0,0.25);
 }
 
+/* popup message */
 #popup {
   position: fixed;
   bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0,0,0,0.85);
+  background: rgba(0,0,0,0.88);
   color: #fff;
-  padding: 16px 20px;
+  padding: 16px 22px;
   border-radius: 14px;
   max-width: 520px;
   text-align: center;
   display: none;
-  border: 1px solid rgba(255,255,255,0.15);
-  line-height: 1.4em;
+  border: 1px solid rgba(255,255,255,0.18);
+  line-height: 1.5em;
+  font-size: 16px;
+
+  backdrop-filter: blur(6px);
+
+  box-shadow:
+    0 0 20px rgba(255,255,255,0.08),
+    0 0 40px rgba(255,140,90,0.08);
+}
+
+/* small screen tweak */
+@media (max-width: 600px) {
+  #popup {
+    font-size: 14px;
+    padding: 12px 16px;
+  }
 }
