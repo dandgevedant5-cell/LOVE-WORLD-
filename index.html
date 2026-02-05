@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Our Little World</title>
+<title>Our Little World — Cozy Edition</title>
 <style>
   body {
     margin: 0;
-    background: #1a1a1a;
+    background: radial-gradient(circle at top, #2b1d1a, #120c0b);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -16,25 +16,29 @@
   }
   canvas {
     image-rendering: pixelated;
-    border: 4px solid #333;
-    background: #2b2b2b;
+    border: 6px solid #3a2a26;
+    background: #3b2a24;
+    box-shadow: 0 0 40px rgba(255,180,120,0.15);
   }
   #popup {
     position: fixed;
-    bottom: 30px;
+    bottom: 28px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0,0,0,0.8);
-    padding: 14px 18px;
-    border-radius: 12px;
-    max-width: 420px;
+    background: rgba(0,0,0,0.82);
+    padding: 16px 20px;
+    border-radius: 14px;
+    max-width: 460px;
     text-align: center;
     display: none;
+    line-height: 1.4em;
+    border: 1px solid rgba(255,255,255,0.15);
   }
 </style>
 </head>
 <body>
-<canvas id="game" width="640" height="480"></canvas>
+
+<canvas id="game" width="768" height="512"></canvas>
 <div id="popup"></div>
 
 <audio id="music" loop>
@@ -46,151 +50,209 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const popup = document.getElementById("popup");
 const music = document.getElementById("music");
-music.volume = 0.4;
+music.volume = 0.35;
 music.play().catch(()=>{});
 
 const TILE = 32;
+const W = canvas.width / TILE;
+const H = canvas.height / TILE;
 
+/* ===== MAP ===== */
 const map = [
-"####################",
-"#..H......T.....A..#",
-"#..................#",
-"#....PPPP..........#",
-"#....P..P....C.....#",
-"#....PPPP..........#",
-"#..................#",
-"#.........B........#",
-"#..................#",
-"#..............L...#",
-"####################"
+"########################",
+"#.............TT.......#",
+"#..HHH........TT....A..#",
+"#..H.H................#",
+"#..HHH.....PPPP........#",
+"#..........P..P........#",
+"#....C.....PPPP........#",
+"#......................#",
+"#.......B..............#",
+"#......................#",
+"#.................LLLL.#",
+"#......................#",
+"########################"
 ];
 
-const locations = {
-  H: "Home — where warm mornings and sleepy smiles live.",
-  C: "Café — we stayed too long and didn’t regret a minute.",
-  B: "Bench — quiet talks that said everything.",
-  A: "Arcade — competitive, chaotic, and adorable.",
-  L: "A quiet hill path… locked for now."
+/* ===== MEMORY SPOTS ===== */
+const memories = {
+  H: "Home — soft mornings, shared silence, safe hearts.",
+  C: "Café — warm cups and warmer eye contact.",
+  B: "Park Bench — the talks that lasted past sunset.",
+  A: "Arcade & Snacks — chaos, laughter, and stolen fries.",
+  L: "The hill path is locked… collect every heart memory first."
 };
 
+/* ===== HEART COLLECTIBLES ===== */
 const hearts = [
-  {x:3,y:2,msg:"You are my favorite notification."},
-  {x:10,y:6,msg:"Achievement unlocked: stole my heart."},
-  {x:15,y:3,msg:"Bug report: falling for you repeatedly."},
-  {x:6,y:8,msg:"You + Me = unfair advantage."},
-  {x:12,y:2,msg:"Warning: excessive cuteness detected."}
+  {x:5,y:2,msg:"You are my favorite place to return to."},
+  {x:14,y:3,msg:"Side quest: hold your hand forever."},
+  {x:9,y:7,msg:"Critical hit — charm damage."},
+  {x:18,y:5,msg:"Inventory full: feelings."},
+  {x:3,y:9,msg:"Respawn point = with you."}
 ];
 
 let collected = 0;
 
 const player = {x:2,y:2};
-
 const keys = {};
 document.addEventListener("keydown",e=>keys[e.key]=true);
 document.addEventListener("keyup",e=>keys[e.key]=false);
 
-function showPopup(text) {
-  popup.innerText = text;
+function popupMsg(t){
+  popup.innerText = t;
   popup.style.display = "block";
-  clearTimeout(showPopup.t);
-  showPopup.t = setTimeout(()=>popup.style.display="none", 3500);
+  clearTimeout(popupMsg.t);
+  popupMsg.t = setTimeout(()=>popup.style.display="none",3600);
 }
 
-function tileAt(x,y){
-  return map[y][x];
+function tile(x,y){ return map[y][x]; }
+function walkable(x,y){ return tile(x,y) !== '#'; }
+
+/* ===== DRAW HELPERS ===== */
+function drawGround(x,y){
+  ctx.fillStyle = "#5b4036";
+  ctx.fillRect(x,y,TILE,TILE);
+  ctx.fillStyle = "#6a4a3f";
+  ctx.fillRect(x+4,y+4,24,24);
 }
 
-function walkable(x,y){
-  return tileAt(x,y) !== '#';
+function drawTree(x,y,phase){
+  const sway = Math.sin(phase/20 + x)*2;
+  ctx.fillStyle="#3c7a3f";
+  ctx.fillRect(x+8,y+4+sway,16,14);
+  ctx.fillStyle="#2f5c31";
+  ctx.fillRect(x+14,y+18,4,10);
 }
 
+function drawHouse(x,y){
+  ctx.fillStyle="#8b5a3c";
+  ctx.fillRect(x+4,y+10,24,18);
+  ctx.fillStyle="#c97b49";
+  ctx.fillRect(x+2,y+6,28,8);
+  ctx.fillStyle="#ffd27a";
+  ctx.fillRect(x+14,y+16,6,8);
+}
+
+function drawCafe(x,y,phase){
+  ctx.fillStyle="#6d4c41";
+  ctx.fillRect(x+4,y+12,24,16);
+  ctx.fillStyle="#d7a86e";
+  ctx.fillRect(x+2,y+8,28,6);
+  const glow = (Math.sin(phase/10)+1)/2;
+  ctx.fillStyle = `rgba(255,220,140,${0.4+glow*0.6})`;
+  ctx.fillRect(x+12,y+16,8,6);
+}
+
+function drawBench(x,y){
+  ctx.fillStyle="#a1744f";
+  ctx.fillRect(x+6,y+18,20,4);
+  ctx.fillRect(x+8,y+14,16,3);
+}
+
+function drawArcade(x,y,phase){
+  ctx.fillStyle="#4e342e";
+  ctx.fillRect(x+8,y+8,16,18);
+  const glow = (Math.sin(phase/8)+1)/2;
+  ctx.fillStyle = `rgba(255,80,120,${0.5+glow*0.5})`;
+  ctx.fillRect(x+11,y+11,10,6);
+}
+
+function drawHillLock(x,y){
+  ctx.fillStyle="#7b5e57";
+  ctx.fillRect(x+6,y+14,20,10);
+}
+
+/* ===== UPDATE ===== */
 function update(){
-  let nx = player.x;
-  let ny = player.y;
-  if(keys["ArrowUp"]) ny--;
-  if(keys["ArrowDown"]) ny++;
-  if(keys["ArrowLeft"]) nx--;
-  if(keys["ArrowRight"]) nx++;
+  let nx=player.x, ny=player.y;
+  if(keys.ArrowUp) ny--;
+  if(keys.ArrowDown) ny++;
+  if(keys.ArrowLeft) nx--;
+  if(keys.ArrowRight) nx++;
 
   if(walkable(nx,ny)){
     player.x = nx;
     player.y = ny;
   }
 
-  const t = tileAt(player.x,player.y);
-  if(locations[t]){
-    if(t === 'L' && collected < hearts.length){
-      showPopup("The hill waits until every memory is found.");
-    } else if(t === 'L'){
-      showPopup("Final Hill — Under these stars, I’d choose you every time.");
-    } else {
-      showPopup(locations[t]);
-    }
+  const t = tile(player.x,player.y);
+  if(memories[t]){
+    if(t==='L' && collected < hearts.length){
+      popupMsg(memories.L);
+    } else if(t==='L'){
+      popupMsg("Final Hill — Under these stars, I’d still choose you. Always.");
+    } else popupMsg(memories[t]);
   }
 
   hearts.forEach(h=>{
     if(!h.got && h.x===player.x && h.y===player.y){
-      h.got = true;
+      h.got=true;
       collected++;
-      showPopup(h.msg);
+      popupMsg(h.msg);
     }
   });
 }
 
-let glow = 0;
+/* ===== DRAW ===== */
+let phase = 0;
 function draw(){
-  glow += 0.05;
+  phase++;
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   for(let y=0;y<map.length;y++){
     for(let x=0;x<map[y].length;x++){
+      const px=x*TILE, py=y*TILE;
       const t = map[y][x];
+
       if(t==="#"){
-        ctx.fillStyle="#5a3c2e";
-        ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
-      } else {
-        ctx.fillStyle="#3e2f2a";
-        ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
+        ctx.fillStyle="#4a332c";
+        ctx.fillRect(px,py,TILE,TILE);
+        continue;
       }
 
-      if(t==="P"){
-        const sway = Math.sin(glow + x)*2;
-        ctx.fillStyle="#4caf50";
-        ctx.fillRect(x*TILE+12,y*TILE+6+sway,8,20);
-      }
+      drawGround(px,py);
 
-      if(t==="T"){
-        const g = (Math.sin(glow*2)+1)/2;
-        ctx.fillStyle = `rgba(255,220,120,${0.5+g*0.5})`;
-        ctx.fillRect(x*TILE+10,y*TILE+10,12,12);
+      if(t==='T') drawTree(px,py,phase);
+      if(t==='H') drawHouse(px,py);
+      if(t==='C') drawCafe(px,py,phase);
+      if(t==='B') drawBench(px,py);
+      if(t==='A') drawArcade(px,py,phase);
+      if(t==='L' && collected < hearts.length) drawHillLock(px,py);
+
+      if(t==='P'){
+        ctx.fillStyle="#6dbb75";
+        ctx.fillRect(px+12,py+12,8,8);
       }
     }
   }
 
   hearts.forEach(h=>{
-    if(!h.got){
-      const bob = Math.sin(glow*2 + h.x)*4;
-      ctx.fillStyle="#ff6b81";
-      ctx.fillRect(h.x*TILE+10,h.y*TILE+10+bob,12,12);
-    }
+    if(h.got) return;
+    const bob = Math.sin(phase/10 + h.x)*5;
+    const px=h.x*TILE+16, py=h.y*TILE+16+bob;
+    ctx.fillStyle="#ff6b81";
+    ctx.fillRect(px-5,py-5,10,10);
   });
 
-  ctx.fillStyle="#ffd166";
-  ctx.fillRect(player.x*TILE+8,player.y*TILE+8,16,16);
+  // player
+  ctx.fillStyle="#ffe082";
+  ctx.fillRect(player.x*TILE+10,player.y*TILE+8,12,16);
+  ctx.fillStyle="#8d6e63";
+  ctx.fillRect(player.x*TILE+12,player.y*TILE+6,8,6);
 
+  // stars when unlocked
   if(collected === hearts.length){
-    for(let i=0;i<30;i++){
-      ctx.fillStyle = "rgba(255,255,255,0.8)";
-      ctx.fillRect((i*53)%640, (i*97)%480, 2,2);
+    for(let i=0;i<40;i++){
+      const sx=(i*73)%canvas.width;
+      const sy=(i*37)%200;
+      ctx.fillStyle="rgba(255,255,255,0.8)";
+      ctx.fillRect(sx,sy,2,2);
     }
   }
 }
 
-function loop(){
-  update();
-  draw();
-  requestAnimationFrame(loop);
-}
+function loop(){ update(); draw(); requestAnimationFrame(loop); }
 loop();
 </script>
 </body>
