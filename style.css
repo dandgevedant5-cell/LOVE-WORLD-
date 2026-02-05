@@ -1,0 +1,32 @@
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #2a1b18, #120b0a);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: monospace;
+}
+
+canvas {
+  border: 6px solid #3a2a26;
+  background: #3b2a24;
+  image-rendering: pixelated;
+  box-shadow: 0 0 40px rgba(255,180,120,0.15);
+}
+
+#popup {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  padding: 16px 20px;
+  border-radius: 14px;
+  max-width: 520px;
+  text-align: center;
+  display: none;
+  border: 1px solid rgba(255,255,255,0.15);
+  line-height: 1.4em;
+}
