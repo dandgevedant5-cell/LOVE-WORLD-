@@ -5,9 +5,32 @@ const bgm = document.getElementById("bgm");
 const chime = document.getElementById("chime");
 
 bgm.volume = 0.35;
-addEventListener("keydown", () => bgm.play().catch(()=>{}), {once:true});
 
 const TILE = 64;
+
+/* ========= START SCREEN ========= */
+
+let gameStarted = false;
+
+function drawStartScreen(){
+  ctx.fillStyle = "#1a120f";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  ctx.fillStyle = "#fff";
+  ctx.font = "28px monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("Our Little World", canvas.width/2, canvas.height/2 - 20);
+
+  ctx.font = "18px monospace";
+  ctx.fillText("Press Any Key To Start", canvas.width/2, canvas.height/2 + 20);
+}
+
+addEventListener("keydown", () => {
+  if(!gameStarted){
+    gameStarted = true;
+    bgm.play().catch(()=>{});
+  }
+});
 
 /* ========= IMAGE LOADER ========= */
 
@@ -29,18 +52,18 @@ const IMG = {
   player: load("assets/player.png")
 };
 
-/* ========= MAP (non straight layout) ========= */
+/* ========= ZIGZAG MAP ========= */
 
 const map = [
 "################",
-"#H..T.....A....#",
-"#..TT......T...#",
-"#......C.......#",
-"#..T.......T...#",
-"#......B.......#",
-"#....T.....TT..#",
-"#.....T........#",
-"#....G.........#",
+"#H....#....T...#",
+"#.##..#..A.....#",
+"#..T..#....##..#",
+"#..##.#.C..T...#",
+"#....B....##...#",
+"#.T..##....T...#",
+"#....#..T......#",
+"#.G..#.........#",
 "################"
 ];
 
@@ -48,19 +71,19 @@ const map = [
 
 const memories = {
   H:"Home — our safe cozy place.",
-  C:"Café — where time feels warm.",
-  B:"Bench — talks I never forget.",
-  A:"Arcade — you + me = chaos 😂",
-  G:"Hill is locked — collect all hearts ❤️"
+  C:"Café — warm talks live here.",
+  B:"Bench — pause & breathe.",
+  A:"Arcade — fun chaos zone.",
+  G:"Gate locked — collect all hearts ❤️"
 };
 
 /* ========= HEARTS ========= */
 
 const hearts = [
-  {x:5,y:1,msg:"You are my favorite notification."},
-  {x:10,y:2,msg:"Achievement unlocked: stole my heart."},
-  {x:3,y:6,msg:"Side quest: stay together forever."},
-  {x:12,y:4,msg:"Critical hit: charm overload."},
+  {x:9,y:1,msg:"You are my favorite person."},
+  {x:3,y:3,msg:"You make days brighter."},
+  {x:11,y:6,msg:"Stay with me always."},
+  {x:2,y:7,msg:"Lucky to have you."},
 ];
 
 let heartsFound = 0;
@@ -79,7 +102,7 @@ function popupMsg(t){
   popup.innerText = t;
   popup.style.display = "block";
   clearTimeout(popupMsg.t);
-  popupMsg.t = setTimeout(()=>popup.style.display="none", 3200);
+  popupMsg.t = setTimeout(()=>popup.style.display="none", 3000);
 }
 
 function walkable(x,y){
@@ -89,6 +112,8 @@ function walkable(x,y){
 /* ========= UPDATE ========= */
 
 function update(){
+  if(!gameStarted) return;
+
   let nx=player.x, ny=player.y;
 
   if(keys.ArrowUp) ny--;
@@ -105,8 +130,8 @@ function update(){
 
   if(memories[t]){
     if(t==="G" && heartsFound === hearts.length){
-      popupMsg("Hill unlocked — love you always 🌙");
-    } else if (t==="G"){
+      popupMsg("Gate opened — secret hill unlocked 🌙");
+    } else if(t==="G"){
       popupMsg(memories.G);
     } else {
       popupMsg(memories[t]);
@@ -129,6 +154,11 @@ function update(){
 let tick = 0;
 
 function draw(){
+  if(!gameStarted){
+    drawStartScreen();
+    return;
+  }
+
   tick++;
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -139,7 +169,7 @@ function draw(){
       const t = map[y][x];
 
       if(t==="#"){
-        ctx.fillStyle="#4a332c";
+        ctx.fillStyle="#3f2b24";
         ctx.fillRect(px,py,TILE,TILE);
         continue;
       }
@@ -163,7 +193,7 @@ function draw(){
         ctx.drawImage(IMG.gate, px, py, TILE, TILE);
 
       if(t==="T" && IMG.tree.complete){
-        const sway = Math.sin(tick/15 + x)*3;
+        const sway = Math.sin(tick/18 + x)*4;
         ctx.drawImage(IMG.tree, px, py+sway, TILE, TILE);
       }
     }
