@@ -5,13 +5,11 @@ const bgm = document.getElementById("bgm");
 const chime = document.getElementById("chime");
 
 bgm.volume = 0.35;
-
-/* start music only after first key press (browser rule) */
 addEventListener("keydown", () => bgm.play().catch(()=>{}), {once:true});
 
 const TILE = 64;
 
-/* ========= IMAGES ========= */
+/* ========= IMAGE LOADER ========= */
 
 function load(src){
   const i = new Image();
@@ -31,34 +29,38 @@ const IMG = {
   player: load("assets/player.png")
 };
 
-/* ========= MAP ========= */
+/* ========= MAP (non straight layout) ========= */
 
 const map = [
 "################",
 "#H..T.....A....#",
-"#..TT..........#",
+"#..TT......T...#",
 "#......C.......#",
-"#..T...........#",
+"#..T.......T...#",
 "#......B.......#",
-"#..........TT..#",
+"#....T.....TT..#",
 "#.....T........#",
 "#....G.........#",
 "################"
 ];
 
+/* ========= MESSAGES ========= */
+
 const memories = {
-  H:"Home — where comfort lives.",
-  C:"Café — warm drinks, warmer moments.",
-  B:"Bench — long talks and quiet smiles.",
-  A:"Arcade — chaos + laughter combo.",
-  G:"The hill gate is locked. Find every heart."
+  H:"Home — our safe cozy place.",
+  C:"Café — where time feels warm.",
+  B:"Bench — talks I never forget.",
+  A:"Arcade — you + me = chaos 😂",
+  G:"Hill is locked — collect all hearts ❤️"
 };
+
+/* ========= HEARTS ========= */
 
 const hearts = [
   {x:5,y:1,msg:"You are my favorite notification."},
-  {x:10,y:2,msg:"Achievement: stole my heart."},
-  {x:3,y:6,msg:"Side quest: stay together."},
-  {x:12,y:4,msg:"Critical hit: charm."},
+  {x:10,y:2,msg:"Achievement unlocked: stole my heart."},
+  {x:3,y:6,msg:"Side quest: stay together forever."},
+  {x:12,y:4,msg:"Critical hit: charm overload."},
 ];
 
 let heartsFound = 0;
@@ -100,14 +102,23 @@ function update(){
   }
 
   const t = map[player.y][player.x];
-  if(memories[t]) popupMsg(memories[t]);
+
+  if(memories[t]){
+    if(t==="G" && heartsFound === hearts.length){
+      popupMsg("Hill unlocked — love you always 🌙");
+    } else if (t==="G"){
+      popupMsg(memories.G);
+    } else {
+      popupMsg(memories[t]);
+    }
+  }
 
   hearts.forEach(h=>{
     if(!h.got && h.x===player.x && h.y===player.y){
       h.got = true;
       heartsFound++;
       chime.currentTime = 0;
-      chime.play();
+      chime.play().catch(()=>{});
       popupMsg(h.msg);
     }
   });
@@ -123,6 +134,7 @@ function draw(){
 
   for(let y=0;y<map.length;y++){
     for(let x=0;x<map[y].length;x++){
+
       const px=x*TILE, py=y*TILE;
       const t = map[y][x];
 
@@ -132,34 +144,42 @@ function draw(){
         continue;
       }
 
-      ctx.drawImage(IMG.tiles, px, py, TILE, TILE);
+      if(IMG.tiles.complete)
+        ctx.drawImage(IMG.tiles, px, py, TILE, TILE);
 
-/* ✅ FIX 3 — cozy tile variation */
-if(t==="#"){
-  ctx.fillStyle="#4a332c";
-  ctx.fillRect(px,py,TILE,TILE);
-  continue;
+      if(t==="H" && IMG.house.complete)
+        ctx.drawImage(IMG.house, px, py, TILE, TILE);
+
+      if(t==="C" && IMG.cafe.complete)
+        ctx.drawImage(IMG.cafe, px, py, TILE, TILE);
+
+      if(t==="B" && IMG.bench.complete)
+        ctx.drawImage(IMG.bench, px, py, TILE, TILE);
+
+      if(t==="A" && IMG.arcade.complete)
+        ctx.drawImage(IMG.arcade, px, py, TILE, TILE);
+
+      if(t==="G" && IMG.gate.complete)
+        ctx.drawImage(IMG.gate, px, py, TILE, TILE);
+
+      if(t==="T" && IMG.tree.complete){
+        const sway = Math.sin(tick/15 + x)*3;
+        ctx.drawImage(IMG.tree, px, py+sway, TILE, TILE);
+      }
+    }
+  }
+
+  hearts.forEach(h=>{
+    if(h.got) return;
+    if(IMG.heart.complete){
+      const bob = Math.sin(tick/10 + h.x)*6;
+      ctx.drawImage(IMG.heart, h.x*TILE+16, h.y*TILE+16+bob, 32,32);
+    }
+  });
+
+  if(IMG.player.complete)
+    ctx.drawImage(IMG.player, player.x*TILE+8, player.y*TILE+8, 48,48);
 }
-
-ctx.drawImage(IMG.tiles, px, py, TILE, TILE);
-
-/* fix 3 here */
-if ((x + y) % 2 === 0) {
-  ctx.fillStyle = "rgba(0,0,0,0.06)";
-  ctx.fillRect(px, py, TILE, TILE);
-}
-
-if(t==="H") ctx.drawImage(IMG.house, px, py, TILE, TILE);
-if(t==="C") ctx.drawImage(IMG.cafe, px, py, TILE, TILE);
-if(t==="B") ctx.drawImage(IMG.bench, px, py, TILE, TILE);
-if(t==="A") ctx.drawImage(IMG.arcade, px, py, TILE, TILE);
-if(t==="G") ctx.drawImage(IMG.gate, px, py, TILE, TILE);
-
-if(t==="T"){
-  const sway = Math.sin(tick/15 + x)*3;
-  ctx.drawImage(IMG.tree, px, py + sway, TILE, TILE);
-}
-
 
 /* ========= LOOP ========= */
 
